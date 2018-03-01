@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"image"
 	"image/draw"
@@ -18,17 +19,32 @@ func main() {
 	// Convert passed arguments into array.
 	args := os.Args[1:]
 
+	// If program is executed without arguments.
+	if len(args) < 1 {
+		// Show usage information.
+		help()
+		os.Exit(0)
+	}
+
+	hasErrors := false
+
 	// Iterate over passed arguments.
 	for i := 0; i < len(args); i++ {
+		// Print out file name.
+		ansi.Println(fmt.Sprintf("%03d", i+1), args[i])
+
+		// Open psd document.
 		doc, err := gopsd.ParseFromPath(args[i])
 		if err != nil {
 			ansi.Println("\x1b[31;1m"+args[i]+":", err, "\x1b[0m")
+			hasErrors = true
 			continue
 		}
 
 		// Skip file if resolution is wrong.
 		if (doc.Width != 1170 && doc.Width != 570) || doc.Height != 363 {
 			ansi.Println("\x1b[31;1m" + args[i] + ": resolution must be 1170x363 or 570x363 (" + strconv.Itoa(int(doc.Width)) + "x" + strconv.Itoa(int(doc.Height)) + ")\x1b[0m")
+			hasErrors = true
 			continue
 		}
 
@@ -37,6 +53,7 @@ func main() {
 		layers, err = removeHiddenLayers(layers, int(doc.Width), int(doc.Height), args[i])
 		if err != nil {
 			ansi.Println("\x1b[31;1m"+args[i]+":", err, "\x1b[0m")
+			hasErrors = true
 			continue
 		}
 
@@ -48,6 +65,7 @@ func main() {
 			fileName, err := saveAsPNG(layer, int(doc.Width), int(doc.Height), args[i], il)
 			if err != nil {
 				ansi.Println("\x1b[31;1m"+args[i]+":", err, "\x1b[0m")
+				hasErrors = true
 				continue
 			}
 
@@ -62,8 +80,15 @@ func main() {
 		err = savePreview(pngs, int(doc.Width), int(doc.Height), args[i])
 		if err != nil {
 			ansi.Println("\x1b[31;1m"+args[i]+":", err, "\x1b[0m")
+			hasErrors = true
 			continue
 		}
+	}
+
+	// If there were errors, don't close console window.
+	if hasErrors {
+		ansi.Println("\nPress 'Enter' to continue...")
+		bufio.NewReader(os.Stdin).ReadBytes('\n')
 	}
 }
 
@@ -71,7 +96,7 @@ func main() {
 func removeHiddenLayers(layers []*gopsd.Layer, w, h int, filePath string) ([]*gopsd.Layer, error) {
 	var dstLayers []*gopsd.Layer
 
-	for i, layer := range layers {
+	for _, layer := range layers {
 		// Skip hidden, invisable or empty layers.
 		if !layer.Visible || layer.Opacity == 0 || layer.Rectangle.Width == 0 || layer.Rectangle.Height == 0 {
 			continue
@@ -107,9 +132,9 @@ func removeHiddenLayers(layers []*gopsd.Layer, w, h int, filePath string) ([]*go
 		)
 
 		// If layer is opaque and there were layers behind it, remove those hidden layers.
-		if dst.Opaque() && i != 0 {
+		if dst.Opaque() && len(dstLayers) > 0 {
 			ansi.Println("\x1b[31;1m" + filePath + ": layers behind \"" + layer.Name + "\" are hidden" + "\x1b[0m")
-			dstLayers = append([]*gopsd.Layer{}, layer)
+			dstLayers = []*gopsd.Layer{layer}
 		} else {
 			dstLayers = append(dstLayers, layer)
 		}
@@ -232,4 +257,9 @@ func round(input float64) int64 {
 		return int64(math.Ceil(input - 0.5))
 	}
 	return int64(math.Floor(input + 0.5))
+}
+
+func help() {
+	ansi.Println("rtpng saves each visible rasterized PSD layer as separate PNG file and combines them into one preview PNG file.")
+	ansi.Println("usage: rtpng file1.psd [file2.psd]...")
 }
