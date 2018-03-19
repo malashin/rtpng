@@ -71,6 +71,11 @@ func main() {
 			continue
 		}
 
+		// Report if \"#title_overlay_bg\" #RRGGBBAA values were not extracted.
+		if rgba == "" {
+			ansi.Println("\x1b[33;1m" + "    \"#title_overlay_bg\" layer not found" + "\x1b[0m")
+		}
+
 		// Skip file if there are no suitable layers to extract.
 		if len(layers) == 0 {
 			ansi.Println("\x1b[31;1m" + "    No suitable layers to extract." + "\x1b[0m")
