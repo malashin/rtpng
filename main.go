@@ -53,8 +53,8 @@ func main() {
 		}
 
 		// Skip file if resolution is wrong.
-		if (doc.Width != 1170 && doc.Width != 570) || doc.Height != 363 {
-			ansi.Println("\x1b[31;1m" + "    Resolution must be 1170x363 or 570x363 (" + strconv.Itoa(int(doc.Width)) + "x" + strconv.Itoa(int(doc.Height)) + ")\x1b[0m")
+		if !((doc.Width != 1170 && doc.Height != 363) || (doc.Width != 570 && doc.Height != 363) || (doc.Width != 3510 && doc.Height != 1089) || (doc.Width != 1140 && doc.Height != 726)) {
+			ansi.Println("\x1b[31;1m" + "    Resolution must be 1170x363, 570x363, 3510x1089 or 1140x726 (" + strconv.Itoa(int(doc.Width)) + "x" + strconv.Itoa(int(doc.Height)) + ")\x1b[0m")
 			hasErrors = true
 			continue
 		}
@@ -260,9 +260,9 @@ func saveAsPNG(layer *gopsd.Layer, w, h int, filePath string, i int) (string, er
 	fileName := filePath[0:len(filePath)-len(filepath.Ext(filePath))] + "_" + fmt.Sprintf("%02d", i) + ".png"
 	// Don't number the file if there is only one layer.
 	if i == 0 {
-		fileName = filePath[0:len(filePath)-len(filepath.Ext(filePath))] + ".png"
+		fileName = filePath[0:len(filePath)-len(filepath.Ext(filePath))] + ".poster.png"
 		if rgba != "" {
-			fileName = filePath[0:len(filePath)-len(filepath.Ext(filePath))] + rgba + ".png"
+			fileName = filePath[0:len(filePath)-len(filepath.Ext(filePath))] + ".poster" + rgba + ".png"
 		}
 
 		out, err := os.Create(fileName)
